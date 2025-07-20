@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package model;
+
+service ModelService {
+    rpc getUserRecommendations(UserRequest) returns (UserRecommendationsResponse);
+    rpc reGenerateModel(Empty) returns (Empty);
+}
+
+message UserRequest {
+    string user_id = 1;
+}
+
+message UserRecommendationsResponse {
+    repeated Recommendation recommendations = 1;
+}
+
+message Recommendation {
+    string user_id = 1;
+}
+
+message Empty {}
