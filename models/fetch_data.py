@@ -118,6 +118,7 @@ def create_data() -> Optional[Tuple[List[str], Dict[str, List[str]], List[Tuple[
         logging.error(f"예상치 못한 오류: {err}")
         return [[], {}, []]
 
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
 

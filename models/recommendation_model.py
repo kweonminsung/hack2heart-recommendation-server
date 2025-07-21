@@ -77,7 +77,6 @@ class UserRecommendationModel:
 
         recommendations = []
 
-        print(f"\n🔎 사용자 {user_id}에게 추천:")
         for i in top_items:
             if i == user_idx or i in known_positives:
                 continue
@@ -88,13 +87,9 @@ class UserRecommendationModel:
                 'user_id': other_user,
                 'score': score
             })
-            print(f"  👉 추천 대상: {other_user} (예측 점수: {score:.8f})")
 
             if len(recommendations) >= top_n:
                 break
-
-        if not recommendations:
-            print("  추천할 대상이 없습니다.")
 
         return recommendations
 
@@ -155,6 +150,12 @@ if __name__ == "__main__":
         model.train_model(epochs=10)
         model.save_model(model_path)
 
-    print(model.get_recommendations(users[0], top_n=10))
+    user_id = users[0]
+
+    recommendations = model.get_recommendations(user_id, top_n=10)
+
+    print(f"\n🔎 사용자 {user_id}({user_metadata.get(user_id, [])})에게 추천:")
+    for rec in recommendations:
+        print(f"  👉 추천 대상: {rec_user_id} (예측 점수: {rec['score']:.8f}, 유저 정보: {user_metadata.get(rec['user_id'], [])}")
 
     print("=== 스크립트 종료 ===")
