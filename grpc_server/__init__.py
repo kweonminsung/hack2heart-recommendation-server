@@ -5,7 +5,8 @@ import os
 import proto.test_pb2 as test_pb2, proto.test_pb2_grpc as test_pb2_grpc
 import proto.model_pb2 as model_pb2, proto.model_pb2_grpc as model_pb2_grpc
 import logging
-from models import UserRecommendationModel, create_sample_data
+from models.recommendation_model import UserRecommendationModel
+from models.fetch_data import create_data
 
 GRPC_PORT = int(os.environ.get("GRPC_PORT", 50051))
 
@@ -17,9 +18,19 @@ def initialize_model():
     global recommendation_model
     try:
         recommendation_model = UserRecommendationModel()
-        users, user_metadata, interactions = create_sample_data()
-        recommendation_model.prepare_data(users, user_metadata, interactions)
-        recommendation_model.train_model(epochs=10)
+        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "saved_models", "recommendation_model.pkl")
+        
+        # 모델이 있으면 로드, 없으면 생성
+        if os.path.exists(model_path):
+            logging.info("기존 모델을 로드합니다...")
+            recommendation_model.load_model(model_path)
+        else:
+            logging.info("새 모델을 생성합니다...")
+            users, user_metadata, interactions = create_data()
+            recommendation_model.prepare_data(users, user_metadata, interactions)
+            recommendation_model.train_model(epochs=10)
+            recommendation_model.save_model(model_path)
+            
         logging.info("추천 모델 초기화 완료")
     except Exception as e:
         logging.error(f"추천 모델 초기화 실패: {e}")
@@ -75,9 +86,13 @@ class ModelService(model_pb2_grpc.ModelServiceServicer):
             recommendation_model = UserRecommendationModel()
             
             # 새로운 데이터로 모델 재학습
-            users, user_metadata, interactions = create_sample_data()
+            users, user_metadata, interactions = create_data()
             recommendation_model.prepare_data(users, user_metadata, interactions)
             recommendation_model.train_model(epochs=10)
+            
+            # 모델 저장
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "saved_models", "recommendation_model.pkl")
+            recommendation_model.save_model(model_path)
             
             logging.info("모델 재생성 완료")
             return model_pb2.Empty()

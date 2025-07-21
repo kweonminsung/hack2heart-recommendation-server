@@ -6,6 +6,7 @@ idna==3.10
 joblib==1.5.1
 kafka-python==2.2.15
 lightfm==1.17
+mysql-connector-python==9.2.0
 numpy==2.2.6
 protobuf==6.31.1
 python-dotenv==1.1.1
