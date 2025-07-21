@@ -14,7 +14,7 @@ def initialize_model():
     global recommendation_model
     try:
         if os.path.exists(MODEL_PATH):
-            logging.info("Loadingd existing model")
+            logging.info("Loading existing model")
             recommendation_model.load_model()
         else:
             logging.info("Creating new model")
@@ -33,32 +33,28 @@ class TestService(test_pb2_grpc.TestServiceServicer):
 
 class ModelService(model_pb2_grpc.ModelServiceServicer):
     def getUserRecommendations(self, request, context):
-        logging.info(f"Received UserRequest for user_id: {request.user_id}")
+        logging.info(f"Received UserRequest for user_id: {request.user_id}, type: {type(request.user_id)}")
         try:
             # 실제 추천 모델에서 추천 결과 가져오기
             model_recommendations = recommendation_model.get_recommendations(request.user_id, top_n=5)
             # protobuf 형식으로 변환
-            recommendations = []
-            for rec in model_recommendations:
-                recommendation = model_pb2.Recommendation(
-                    user_id=rec['user_id'],
-                )
-                recommendations.append(recommendation)
-            return model_pb2.UserRecommendationsResponse(recommendations=recommendations)
+            user_ids = [rec['user_id'] for rec in model_recommendations]
+            return model_pb2.UserRecommendationsResponse(user_ids=user_ids)
         except ValueError as e:
             logging.error(f"Error generating recommendations for user {request.user_id}: {e}")
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(str(e))
-            return model_pb2.UserRecommendationsResponse()
+            return model_pb2.UserRecommendationsResponse(user_ids=[])
         except Exception as e:
             logging.error(f"Internal server error: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(str(e))
-            return model_pb2.UserRecommendationsResponse()
+            return model_pb2.UserRecommendationsResponse(user_ids=[])
 
 def serve():
     # 추천 모델 초기화
     initialize_model()
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     test_pb2_grpc.add_TestServiceServicer_to_server(TestService(), server)
     model_pb2_grpc.add_ModelServiceServicer_to_server(ModelService(), server)

@@ -19,7 +19,7 @@ def regenerate_model():
     logging.info("모델이 재생성되었습니다.")
 
 
-def insert_user_reaction(user_id: str, target_user_id: str, reaction_weight: float = 1.0):
+def insert_user_reaction(user_id: int, target_user_id: int, reaction_weight: float = 1.0):
     """사용자 반응을 기존 모델에 삽입합니다."""
     global global_model
     try:
@@ -46,12 +46,16 @@ def serve_kafka_consumer():
         value_deserializer=lambda m: json.loads(m.decode("utf-8"))
     )
     logging.info(f"Kafka consumer started. Listening to topic: {KAFKA_TOPIC}")
+
     try:
-        for message in consumer:
-            logging.info(f"Received message: {message.value}")
-            # 메시지 수신 시 모델 재생성
-            # regenerate_model()
-    except KeyboardInterrupt:
-        logging.info("Consumer stopped.")
+        while not stop_event.is_set():
+            msg_pack = consumer.poll(timeout_ms=1000)  # ✅ 타임아웃 poll
+            for tp, messages in msg_pack.items():
+                for message in messages:
+                    logging.info(f"Received message: {message.value}")
+                    # regenerate_model()
+    except Exception as e:
+        logging.error(f"Kafka consumer error: {e}")
     finally:
+        logging.info("Closing Kafka consumer...")
         consumer.close()

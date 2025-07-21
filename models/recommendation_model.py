@@ -1,4 +1,3 @@
-import threading
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix
 from lightfm import LightFM
@@ -10,16 +9,6 @@ import logging
 
 # 전역 모델 인스턴스 및 경로 (다른 모듈에서 import해서 재사용)
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
-global_model = None
-_model_lock = threading.Lock()
-
-def get_global_model():
-    global global_model
-    with _model_lock:
-        if global_model is None:
-            global_model = UserRecommendationModel()
-            # 필요시 여기서 모델 로드 가능
-        return global_model
 
 class UserRecommendationModel:
     """사용자 간 추천을 위한 LightFM 기반 모델 클래스"""
@@ -31,8 +20,8 @@ class UserRecommendationModel:
         self.user_features: Optional[csr_matrix] = None
         self.is_trained: bool = False
 
-    def prepare_data(self, users: List[str], user_metadata: Dict[str, List[str]], 
-                    interactions: List[Tuple[str, str]]) -> None:
+    def prepare_data(self, users: List[int], user_metadata: Dict[int, List[str]], 
+                    interactions: List[Tuple[int, int, float]]) -> None:
         """데이터셋을 준비하고 행렬을 생성합니다."""
         logging.info("Preparing dataset with users and interactions")
         
@@ -50,7 +39,7 @@ class UserRecommendationModel:
 
         print(f"데이터셋 준비 완료 - 사용자: {len(users)}, 피처 수: {len(all_features)}")
 
-    def train_model(self, epochs: int = 10, loss: str = 'bpr', num_threads: int = 1) -> None:
+    def train_model(self, epochs: int = 10, loss: str = 'warp-kos', num_threads: int = 1) -> None:
         """모델을 학습시킵니다."""
         if self.dataset is None:
             raise ValueError("Dataset is not prepared. Call prepare_data() first.")
@@ -68,7 +57,7 @@ class UserRecommendationModel:
         self.is_trained = True
         logging.info("Model training completed")
 
-    def get_recommendations(self, user_id: str, top_n: int = 10) -> List[Dict[str, Any]]:
+    def get_recommendations(self, user_id: int, top_n: int = 10) -> List[Dict[int, Any]]:
         """특정 사용자에게 추천할 사용자들을 반환합니다."""
         if not self.is_trained:
             raise ValueError("Model is not trained. Call train_model() first.")
@@ -144,7 +133,7 @@ class UserRecommendationModel:
 
         logging.info(f"Model loaded from {MODEL_PATH}")
 
-    def _validate_user_ids(self, user_id: str, target_user_id: str) -> Tuple[int, int]:
+    def _validate_user_ids(self, user_id: int, target_user_id: int) -> Tuple[int, int]:
         """사용자 ID 유효성 검사 및 인덱스 반환"""
         user_mapping = self.dataset.mapping()[0]
         missing_users = []
@@ -194,7 +183,7 @@ class UserRecommendationModel:
                 num_threads=1
             )
 
-    def update_user_reaction(self, user_id: str, target_user_id: str, reaction_weight: float = 1.0) -> None:
+    def update_user_reaction(self, user_id: int, target_user_id: int, reaction_weight: float = 1.0) -> None:
         """새로운 사용자 반응을 모델에 반영합니다."""
         if not self.is_trained:
             raise ValueError("Model is not trained. Call train_model() first.")
@@ -211,7 +200,7 @@ class UserRecommendationModel:
         except Exception as e:
             logging.error(f"Error updating reaction: {e}")
 
-    def batch_update_reactions(self, reactions_list: List[Tuple[str, str, float]]) -> None:
+    def batch_update_reactions(self, reactions_list: List[Tuple[int, int, float]]) -> None:
         """여러 사용자 반응을 배치로 업데이트합니다."""
         if not self.is_trained:
             raise ValueError("Model is not trained. Call train_model() first.")
@@ -251,6 +240,7 @@ class UserRecommendationModel:
         except Exception as e:
             raise ValueError(f"Batch reaction update failed: {str(e)}")
 
+global_model = UserRecommendationModel()
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

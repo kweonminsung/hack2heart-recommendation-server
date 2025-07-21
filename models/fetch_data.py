@@ -4,7 +4,6 @@ import os
 import logging
 from typing import Tuple, List, Dict, Optional
 
-
 def get_db_connection():
     """MySQL 데이터베이스 연결 생성"""
     try:
@@ -22,7 +21,7 @@ def get_db_connection():
         raise
 
 
-def create_data() -> Optional[Tuple[List[str], Dict[str, List[str]], List[Tuple[str, str, int]]]]:
+def create_data() -> Optional[Tuple[List[int], Dict[int, List[str]], List[Tuple[int, int, float]]]]:
     """
     MySQL에서 유저 feature 및 interaction 데이터를 로딩
 
@@ -67,8 +66,8 @@ def create_data() -> Optional[Tuple[List[str], Dict[str, List[str]], List[Tuple[
         """)
         user_rows = cursor.fetchall()
 
-        users: List[str] = []
-        user_metadata: Dict[str, List[str]] = {}
+        users: List[int] = []
+        user_metadata: Dict[int, List[str]] = {}
 
         for row in user_rows:
             user_id = row['id']
@@ -100,7 +99,7 @@ def create_data() -> Optional[Tuple[List[str], Dict[str, List[str]], List[Tuple[
         """)
 
         reaction_rows = cursor.fetchall()
-        interactions: List[Tuple[str, str, int]] = [
+        interactions: List[Tuple[int, int, float]] = [
             (row['from_user_id'], row['to_user_id'], row['rating'])
             for row in reaction_rows if row['rating'] is not None
         ]
