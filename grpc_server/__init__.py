@@ -5,8 +5,12 @@ import os
 import proto.test_pb2 as test_pb2, proto.test_pb2_grpc as test_pb2_grpc
 import proto.model_pb2 as model_pb2, proto.model_pb2_grpc as model_pb2_grpc
 import logging
+from dotenv import load_dotenv
 from models.recommendation_model import global_model as recommendation_model, MODEL_PATH
 from models.fetch_data import create_data
+
+# 환경변수 로드를 먼저 실행
+load_dotenv()
 
 GRPC_PORT = int(os.environ.get("GRPC_PORT", 50051))
 

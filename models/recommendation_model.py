@@ -9,6 +9,7 @@ import logging
 
 # 전역 모델 인스턴스 및 경로 (다른 모듈에서 import해서 재사용)
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
+LOSS_FUNCTION = 'logistic'  # 기본 손실 함수(logistic, warp, warp-kos, dpr)
 
 class UserRecommendationModel:
     """사용자 간 추천을 위한 LightFM 기반 모델 클래스"""
@@ -39,7 +40,7 @@ class UserRecommendationModel:
 
         print(f"데이터셋 준비 완료 - 사용자: {len(users)}, 피처 수: {len(all_features)}")
 
-    def train_model(self, epochs: int = 10, loss: str = 'warp-kos', num_threads: int = 1) -> None:
+    def train_model(self, epochs: int = 10, loss: str = LOSS_FUNCTION, num_threads: int = 1) -> None:
         """모델을 학습시킵니다."""
         if self.dataset is None:
             raise ValueError("Dataset is not prepared. Call prepare_data() first.")
