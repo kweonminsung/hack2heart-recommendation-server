@@ -138,24 +138,19 @@ if __name__ == "__main__":
     model = UserRecommendationModel()
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
     
-    # 모델이 있으면 로드, 없으면 생성
-    if os.path.exists(model_path):
-        print("기존 모델을 로드합니다...")
-        model.load_model(model_path)
-        users = list(model.dataset.mapping()[0].keys())
-    else:
-        print("새 모델을 생성합니다...")
-        users, user_metadata, interactions = create_data()
-        model.prepare_data(users, user_metadata, interactions)
-        model.train_model(epochs=10)
-        model.save_model(model_path)
+
+    print("새 모델을 생성합니다...")
+    users, user_metadata, interactions = create_data()
+    model.prepare_data(users, user_metadata, interactions)
+    model.train_model(epochs=10)
+    model.save_model(model_path)
 
     user_id = users[0]
-
     recommendations = model.get_recommendations(user_id, top_n=10)
 
     print(f"\n🔎 사용자 {user_id}({user_metadata.get(user_id, [])})에게 추천:")
     for rec in recommendations:
-        print(f"  👉 추천 대상: {rec_user_id} (예측 점수: {rec['score']:.8f}, 유저 정보: {user_metadata.get(rec['user_id'], [])}")
+        rec_user_id = rec['user_id']
+        print(f"  👉 추천 대상: {rec_user_id} (예측 점수: {rec['score']:.8f}, 유저 정보: {user_metadata.get(rec_user_id, [])}")
 
     print("=== 스크립트 종료 ===")
