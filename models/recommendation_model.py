@@ -145,12 +145,13 @@ if __name__ == "__main__":
     model.train_model(epochs=10)
     model.save_model(model_path)
 
-    user_id = users[0]
-    recommendations = model.get_recommendations(user_id, top_n=10)
+    for idx in range(10):
+        user_id = users[idx]
+        recommendations = model.get_recommendations(user_id, top_n=10)
 
-    print(f"\n🔎 사용자 {user_id}({user_metadata.get(user_id, [])})에게 추천:")
-    for rec in recommendations:
-        rec_user_id = rec['user_id']
-        print(f"  👉 추천 대상: {rec_user_id} (예측 점수: {rec['score']:.8f}, 유저 정보: {user_metadata.get(rec_user_id, [])}")
+        print(f"\n🔎 사용자 {user_id}({user_metadata.get(user_id, [])})에게 추천:")
+        for rec in recommendations:
+            rec_user_id = rec['user_id']
+            print(f"  👉 추천 대상: {rec_user_id} (예측 점수: {rec['score']:.8f}, 유저 정보: {user_metadata.get(rec_user_id, [])}")
 
     print("=== 스크립트 종료 ===")

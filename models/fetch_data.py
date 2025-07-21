@@ -75,7 +75,7 @@ def create_data() -> Optional[Tuple[List[str], Dict[str, List[str]], List[Tuple[
             users.append(user_id)
 
             features = [
-                f"gender={row['gender']}" if row['gender'] else '',
+                # f"gender={row['gender']}" if row['gender'] else '',
                 'looking_for=love' if row['looking_for_love'] else '',
                 'looking_for=friend' if row['looking_for_friend'] else '',
                 'looking_for=coworker' if row['looking_for_coworker'] else '',
