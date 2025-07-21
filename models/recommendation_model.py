@@ -1,22 +1,40 @@
+import threading
 import numpy as np
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, csr_matrix
 from lightfm import LightFM
 from lightfm.data import Dataset
 import pickle
 import os
+from typing import List, Dict, Tuple, Optional, Any
 import logging
 
-class UserRecommendationModel:
-    def __init__(self):
-        self.dataset = None
-        self.model = None
-        self.interaction_matrix = None
-        self.user_features = None
-        self.is_trained = False
+# 전역 모델 인스턴스 및 경로 (다른 모듈에서 import해서 재사용)
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
+global_model = None
+_model_lock = threading.Lock()
 
-    def prepare_data(self, users, user_metadata, interactions):
+def get_global_model():
+    global global_model
+    with _model_lock:
+        if global_model is None:
+            global_model = UserRecommendationModel()
+            # 필요시 여기서 모델 로드 가능
+        return global_model
+
+class UserRecommendationModel:
+    """사용자 간 추천을 위한 LightFM 기반 모델 클래스"""
+    
+    def __init__(self):
+        self.dataset: Optional[Dataset] = None
+        self.model: Optional[LightFM] = None
+        self.interaction_matrix: Optional[csr_matrix] = None
+        self.user_features: Optional[csr_matrix] = None
+        self.is_trained: bool = False
+
+    def prepare_data(self, users: List[str], user_metadata: Dict[str, List[str]], 
+                    interactions: List[Tuple[str, str]]) -> None:
         """데이터셋을 준비하고 행렬을 생성합니다."""
-        print("=== 데이터셋 준비 중 ===")
+        logging.info("Preparing dataset with users and interactions")
         
         self.dataset = Dataset()
         self.dataset.fit(users, users)  # user → other user 추천
@@ -32,12 +50,12 @@ class UserRecommendationModel:
 
         print(f"데이터셋 준비 완료 - 사용자: {len(users)}, 피처 수: {len(all_features)}")
 
-    def train_model(self, epochs=10, loss='bpr', num_threads=1):
+    def train_model(self, epochs: int = 10, loss: str = 'bpr', num_threads: int = 1) -> None:
         """모델을 학습시킵니다."""
         if self.dataset is None:
-            raise ValueError("데이터셋이 준비되지 않았습니다. prepare_data()를 먼저 호출하세요.")
+            raise ValueError("Dataset is not prepared. Call prepare_data() first.")
         
-        print(f"=== 모델 학습 시작 - epochs: {epochs}, loss: {loss} ===")
+        logging.info(f"Training model - epochs: {epochs}, loss: {loss}")
 
         self.model = LightFM(loss=loss)
         self.model.fit(
@@ -48,19 +66,19 @@ class UserRecommendationModel:
             num_threads=num_threads
         )
         self.is_trained = True
-        print("모델 학습 완료")
+        logging.info("Model training completed")
 
-    def get_recommendations(self, user_id, top_n=10):
+    def get_recommendations(self, user_id: str, top_n: int = 10) -> List[Dict[str, Any]]:
         """특정 사용자에게 추천할 사용자들을 반환합니다."""
         if not self.is_trained:
-            raise ValueError("모델이 학습되지 않았습니다. train_model()을 먼저 호출하세요.")
+            raise ValueError("Model is not trained. Call train_model() first.")
 
-        print(f"=== 사용자 {user_id} 추천 계산 중 ===")
+        logging.info(f"Calculating recommendations for user: {user_id}")
 
         try:
             user_idx = self.dataset.mapping()[0][user_id]
         except KeyError:
-            raise ValueError(f"사용자 '{user_id}'를 찾을 수 없습니다.")
+            raise ValueError(f"User '{user_id}' not found in dataset.")
 
         user_ids = list(self.dataset.mapping()[0].keys())
         scores = self.model.predict(
@@ -93,10 +111,10 @@ class UserRecommendationModel:
 
         return recommendations
 
-    def save_model(self, filepath):
+    def save_model(self) -> None:
         """모델을 파일로 저장합니다."""
         if not self.is_trained:
-            raise ValueError("학습된 모델이 없습니다.")
+            logging.warning("No trained model to save.")
 
         model_data = {
             'model': self.model,
@@ -105,17 +123,17 @@ class UserRecommendationModel:
             'user_features': self.user_features
         }
 
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        with open(filepath, 'wb') as f:
+        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+        with open(MODEL_PATH, 'wb') as f:
             pickle.dump(model_data, f)
-        print(f"모델이 {filepath}에 저장되었습니다.")
+        logging.info(f"Model saved to {MODEL_PATH}")
 
-    def load_model(self, filepath):
+    def load_model(self) -> None:
         """파일에서 모델을 로드합니다."""
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"모델 파일을 찾을 수 없습니다: {filepath}")
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
 
-        with open(filepath, 'rb') as f:
+        with open(MODEL_PATH, 'rb') as f:
             model_data = pickle.load(f)
 
         self.model = model_data['model']
@@ -124,7 +142,114 @@ class UserRecommendationModel:
         self.user_features = model_data['user_features']
         self.is_trained = True
 
-        print(f"모델이 {filepath}에서 로드되었습니다.")
+        logging.info(f"Model loaded from {MODEL_PATH}")
+
+    def _validate_user_ids(self, user_id: str, target_user_id: str) -> Tuple[int, int]:
+        """사용자 ID 유효성 검사 및 인덱스 반환"""
+        user_mapping = self.dataset.mapping()[0]
+        missing_users = []
+        
+        if user_id not in user_mapping:
+            missing_users.append(user_id)
+        if target_user_id not in user_mapping:
+            missing_users.append(target_user_id)
+            
+        if missing_users:
+            raise ValueError(f"Users not found: {', '.join(missing_users)}")
+        
+        return user_mapping[user_id], user_mapping[target_user_id]
+
+    def _update_interaction_matrix(self, rows: List[int], cols: List[int], data: List[float]) -> None:
+        """상호작용 매트릭스 업데이트"""
+        current_matrix = self.interaction_matrix.tocoo()
+        
+        # 기존 데이터와 새 데이터 결합
+        all_rows = list(current_matrix.row) + rows
+        all_cols = list(current_matrix.col) + cols
+        all_data = list(current_matrix.data) + data
+        
+        # 새로운 interaction matrix 생성
+        self.interaction_matrix = coo_matrix(
+            (all_data, (all_rows, all_cols)), 
+            shape=current_matrix.shape
+        ).tocsr()
+
+    def _retrain_model(self, epochs: int = 1) -> None:
+        """모델 재학습 (partial_fit 시도 후 실패 시 전체 재학습)"""
+        try:
+            self.model.fit_partial(
+                self.interaction_matrix,
+                user_features=self.user_features,
+                item_features=self.user_features,
+                epochs=epochs,
+                num_threads=1
+            )
+        except Exception as e:
+            logging.warning(f"Partial fit failed: {e}, retraining model")
+            self.model.fit(
+                self.interaction_matrix,
+                user_features=self.user_features,
+                item_features=self.user_features,
+                epochs=epochs,
+                num_threads=1
+            )
+
+    def update_user_reaction(self, user_id: str, target_user_id: str, reaction_weight: float = 1.0) -> None:
+        """새로운 사용자 반응을 모델에 반영합니다."""
+        if not self.is_trained:
+            raise ValueError("Model is not trained. Call train_model() first.")
+        
+        logging.info(f"Updating user reaction: {user_id} → {target_user_id} (weight: {reaction_weight})")
+        
+        try:
+            user_idx, target_user_idx = self._validate_user_ids(user_id, target_user_id)
+            self._update_interaction_matrix([user_idx], [target_user_idx], [reaction_weight])
+            self._retrain_model()
+            
+            logging.info(f"Reaction update completed: {user_id} → {target_user_id}")
+                
+        except Exception as e:
+            logging.error(f"Error updating reaction: {e}")
+
+    def batch_update_reactions(self, reactions_list: List[Tuple[str, str, float]]) -> None:
+        """여러 사용자 반응을 배치로 업데이트합니다."""
+        if not self.is_trained:
+            raise ValueError("Model is not trained. Call train_model() first.")
+            
+        if not reactions_list:
+            logging.info("No reactions to update.")
+            return
+            
+        logging.info(f"Batch updating {len(reactions_list)} reactions")
+        
+        try:
+            user_mapping = self.dataset.mapping()[0]
+            rows, cols, data = [], [], []
+            valid_reactions = 0
+            
+            for user_id, target_user_id, weight in reactions_list:
+                if user_id in user_mapping and target_user_id in user_mapping:
+                    user_idx = user_mapping[user_id]
+                    target_user_idx = user_mapping[target_user_id]
+                    
+                    rows.append(user_idx)
+                    cols.append(target_user_idx)
+                    data.append(weight)
+                    valid_reactions += 1
+                else:
+                    logging.warning(f"Skipping reaction due to missing user: {user_id} → {target_user_id}")
+            
+            if valid_reactions == 0:
+                logging.info("No valid reactions to update.")
+                return
+                
+            self._update_interaction_matrix(rows, cols, data)
+            self._retrain_model()
+            
+            logging.info(f"Batch update completed: {valid_reactions} reactions processed")
+                
+        except Exception as e:
+            raise ValueError(f"Batch reaction update failed: {str(e)}")
 
 
 if __name__ == "__main__":
@@ -136,22 +261,22 @@ if __name__ == "__main__":
     print("=== 스크립트 시작 ===")
     
     model = UserRecommendationModel()
-    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
-    
-
-    print("새 모델을 생성합니다...")
     users, user_metadata, interactions = create_data()
     model.prepare_data(users, user_metadata, interactions)
     model.train_model(epochs=10)
-    model.save_model(model_path)
+    model.save_model()
 
-    for idx in range(10):
+    # 추천 테스트
+    for idx in range(min(10, len(users))):
         user_id = users[idx]
-        recommendations = model.get_recommendations(user_id, top_n=10)
-
-        print(f"\n🔎 사용자 {user_id}({user_metadata.get(user_id, [])})에게 추천:")
-        for rec in recommendations:
-            rec_user_id = rec['user_id']
-            print(f"  👉 추천 대상: {rec_user_id} (예측 점수: {rec['score']:.8f}, 유저 정보: {user_metadata.get(rec_user_id, [])}")
+        try:
+            recommendations = model.get_recommendations(user_id, top_n=5)
+            
+            print(f"\n🔎 사용자 {user_id}({user_metadata.get(user_id, [])})에게 추천:")
+            for rec in recommendations:
+                rec_user_id = rec['user_id']
+                print(f"  👉 {rec_user_id} (점수: {rec['score']:.6f}, 정보: {user_metadata.get(rec_user_id, [])})")
+        except Exception as e:
+            print(f"사용자 {user_id} 추천 중 오류: {e}")
 
     print("=== 스크립트 종료 ===")

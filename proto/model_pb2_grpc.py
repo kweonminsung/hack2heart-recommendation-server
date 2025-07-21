@@ -39,23 +39,12 @@ class ModelServiceStub(object):
                 request_serializer=model__pb2.UserRequest.SerializeToString,
                 response_deserializer=model__pb2.UserRecommendationsResponse.FromString,
                 _registered_method=True)
-        self.reGenerateModel = channel.unary_unary(
-                '/model.ModelService/reGenerateModel',
-                request_serializer=model__pb2.Empty.SerializeToString,
-                response_deserializer=model__pb2.Empty.FromString,
-                _registered_method=True)
 
 
 class ModelServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def getUserRecommendations(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def reGenerateModel(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -68,11 +57,6 @@ def add_ModelServiceServicer_to_server(servicer, server):
                     servicer.getUserRecommendations,
                     request_deserializer=model__pb2.UserRequest.FromString,
                     response_serializer=model__pb2.UserRecommendationsResponse.SerializeToString,
-            ),
-            'reGenerateModel': grpc.unary_unary_rpc_method_handler(
-                    servicer.reGenerateModel,
-                    request_deserializer=model__pb2.Empty.FromString,
-                    response_serializer=model__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -102,33 +86,6 @@ class ModelService(object):
             '/model.ModelService/getUserRecommendations',
             model__pb2.UserRequest.SerializeToString,
             model__pb2.UserRecommendationsResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def reGenerateModel(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/model.ModelService/reGenerateModel',
-            model__pb2.Empty.SerializeToString,
-            model__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

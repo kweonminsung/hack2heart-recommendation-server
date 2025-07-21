@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bmodel.proto\x12\x05model\"\x1e\n\x0bUserRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"M\n\x1bUserRecommendationsResponse\x12.\n\x0frecommendations\x18\x01 \x03(\x0b\x32\x15.model.Recommendation\"!\n\x0eRecommendation\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"\x07\n\x05\x45mpty2\x8f\x01\n\x0cModelService\x12P\n\x16getUserRecommendations\x12\x12.model.UserRequest\x1a\".model.UserRecommendationsResponse\x12-\n\x0freGenerateModel\x12\x0c.model.Empty\x1a\x0c.model.Emptyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bmodel.proto\x12\x05model\"\x1e\n\x0bUserRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"M\n\x1bUserRecommendationsResponse\x12.\n\x0frecommendations\x18\x01 \x03(\x0b\x32\x15.model.Recommendation\"!\n\x0eRecommendation\x12\x0f\n\x07user_id\x18\x01 \x01(\t2`\n\x0cModelService\x12P\n\x16getUserRecommendations\x12\x12.model.UserRequest\x1a\".model.UserRecommendationsResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,8 +37,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERRECOMMENDATIONSRESPONSE']._serialized_end=131
   _globals['_RECOMMENDATION']._serialized_start=133
   _globals['_RECOMMENDATION']._serialized_end=166
-  _globals['_EMPTY']._serialized_start=168
-  _globals['_EMPTY']._serialized_end=175
-  _globals['_MODELSERVICE']._serialized_start=178
-  _globals['_MODELSERVICE']._serialized_end=321
+  _globals['_MODELSERVICE']._serialized_start=168
+  _globals['_MODELSERVICE']._serialized_end=264
 # @@protoc_insertion_point(module_scope)
